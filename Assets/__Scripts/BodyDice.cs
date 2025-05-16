@@ -55,6 +55,7 @@ public class BodyDice : MonoBehaviour
     void Start()
     {
         outline.enabled = false;
+        DiceManager.Instance.RegisterDice(this);
     }
 
     // 주사위 굴리기
