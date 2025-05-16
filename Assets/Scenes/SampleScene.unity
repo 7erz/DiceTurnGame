@@ -260,17 +260,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4855872238043369348, guid: 1d840c0c488e1f740b232a34dc0ca449, type: 3}
   m_PrefabInstance: {fileID: 1520486003}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &42190310 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1980370108199411499, guid: 1d840c0c488e1f740b232a34dc0ca449, type: 3}
-  m_PrefabInstance: {fileID: 1520486003}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 588225c1601e81245b77a5e0f0407783, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &92663338
 GameObject:
   m_ObjectHideFlags: 0
@@ -2820,17 +2809,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 3798959320493824988, guid: 0f8dbeaa0903d694b90b0731c27a853b, type: 3}
   m_PrefabInstance: {fileID: 1172147914}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1084665247 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 4028676528952030001, guid: 0f8dbeaa0903d694b90b0731c27a853b, type: 3}
-  m_PrefabInstance: {fileID: 1172147914}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 588225c1601e81245b77a5e0f0407783, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1120419883
 GameObject:
   m_ObjectHideFlags: 0
@@ -3695,17 +3673,6 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 4855872238043369348, guid: 1d840c0c488e1f740b232a34dc0ca449, type: 3}
   m_PrefabInstance: {fileID: 417383057}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1590429859 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 1980370108199411499, guid: 1d840c0c488e1f740b232a34dc0ca449, type: 3}
-  m_PrefabInstance: {fileID: 417383057}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 588225c1601e81245b77a5e0f0407783, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!1 &1688488930
 GameObject:
   m_ObjectHideFlags: 0
@@ -4712,33 +4679,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1084665247}
-        m_TargetAssemblyTypeName: BodyDice, Assembly-CSharp
-        m_MethodName: RollDice
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 1590429859}
-        m_TargetAssemblyTypeName: BodyDice, Assembly-CSharp
-        m_MethodName: RollDice
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
-      - m_Target: {fileID: 42190310}
-        m_TargetAssemblyTypeName: BodyDice, Assembly-CSharp
-        m_MethodName: RollDice
+      - m_Target: {fileID: 2011769499}
+        m_TargetAssemblyTypeName: DiceManager, Assembly-CSharp
+        m_MethodName: RollAllDices
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -4830,6 +4773,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5d84333e02c6514f82153762781105e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  OnDiceSelected:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!1 &2018083088
 GameObject:
   m_ObjectHideFlags: 0

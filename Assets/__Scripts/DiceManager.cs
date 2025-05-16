@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 public class DiceManager : MonoBehaviour
@@ -9,6 +10,8 @@ public class DiceManager : MonoBehaviour
     private BodyDice currentSelectedDice;
 
     private List<BodyDice> allDices = new List<BodyDice>();
+
+    public UnityEvent<BodyDice> OnDiceSelected = new UnityEvent<BodyDice>();
 
 
 
@@ -45,6 +48,7 @@ public class DiceManager : MonoBehaviour
 
         currentSelectedDice = newDice;
         newDice.SetOutline(true);
+        OnDiceSelected.Invoke(newDice);
     }
 
     public void DeselectAll()
@@ -53,6 +57,9 @@ public class DiceManager : MonoBehaviour
         {
             currentSelectedDice.SetOutline(false);
             currentSelectedDice = null;
+            OnDiceSelected.Invoke(null);
         }
     }
+
+    public BodyDice GetSelectedDice() => Instance.currentSelectedDice;
 }
