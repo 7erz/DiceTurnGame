@@ -152,8 +152,12 @@ public class BodyDice : MonoBehaviour
         outline.enabled = state;
     }
 
-    private void OnSelected()
+    public void OnSelected()
     {
-        DiceManager.Instance.SelectDice(this);
+        int num;
+        if(int.TryParse(LastRollResult, out num))
+        {
+            DiceManager.Instance.SelectDice(this);
+        }
     }
 }

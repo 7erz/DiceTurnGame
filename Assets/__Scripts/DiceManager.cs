@@ -61,5 +61,8 @@ public class DiceManager : MonoBehaviour
         }
     }
 
-    public BodyDice GetSelectedDice() => Instance.currentSelectedDice;
+    public BodyDice GetSelectedDice()
+    {
+        return currentSelectedDice;
+    }
 }
