@@ -36,8 +36,8 @@ public class SkillUI : MonoBehaviour
     {
         if (currentSkill != null && skillPanelManager != null)
         {
-            Debug.Log(currentSkill.skillName + " 버튼 클릭됨! 정보 패널 업데이트 요청.");
-            skillPanelManager.SetCurrentSkillForInfoPanel(currentSkill); // 정보 패널 업데이트 요청
+            Debug.Log(currentSkill.skillName + " 버튼 클릭됨! GameManager에 스킬 설정 및 정보 패널 업데이트 요청.");
+            skillPanelManager.OnSkillButtonActivated(currentSkill); // 변경된 함수 호출
         }
     }
 }

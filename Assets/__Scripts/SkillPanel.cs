@@ -82,6 +82,23 @@ public class SkillPanel : MonoBehaviour
     }
 
 
+    public void OnSkillButtonActivated(SkillData skill) // SkillUI의 버튼클릭이 이 함수를 호출한다고 가정
+    {
+        // 1. 정보 패널 업데이트 (기존 로직)
+        SetCurrentSkillForInfoPanel(skill); // 이 함수는 currentDisplayedSkillForInfo를 설정하고 UpdateSkillInfoPanelWithDice를 호출
+
+        // 2. GameManager에 공격용 스킬 설정
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.SetSelectedSkillForAttack(skill);
+        }
+        else
+        {
+            Debug.LogError("GameManager 인스턴스가 없습니다.");
+        }
+    }
+
+
     // Skill_InfoPanel의 내용을 업데이트하는 함수
     public void UpdateSkillInfoPanelWithDice(SkillData skill)
     {
@@ -156,5 +173,7 @@ public class SkillPanel : MonoBehaviour
             UpdateSkillInfoPanelWithDice(currentDisplayedSkillForInfo);
         }
     }
+
+
 
 }

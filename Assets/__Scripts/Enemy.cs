@@ -59,12 +59,17 @@ public class Enemy : MonoBehaviour
     }
 
     // 플레이어가 이 적을 클릭했을 때 호출될 수 있는 함수 (공격 대상 지정용)
-    /*void OnMouseDown()
+    void OnMouseDown()
     {
-        if (GameManager.Instance != null) // GameManager가 있다는 가정 하에
+        // GameManager에게 이 적이 클릭되었음을 알림
+        if (GameManager.Instance != null)
         {
-            GameManager.Instance.SelectTargetEnemy(this);
+            GameManager.Instance.EnemyClicked(this);
         }
-        Debug.Log($"{gameObject.name} 선택됨 (공격 대상 후보)");
-    }*/
+        else
+        {
+            Debug.LogError("GameManager 인스턴스가 없습니다.");
+        }
+        // Debug.Log($"{gameObject.name} 선택됨 (공격 대상 후보)"); // GameManager.EnemyClicked에서 로그 처리
+    }
 }

@@ -5,6 +5,8 @@ using System.Linq; // Linq 사용을 위해 추가 (Take 함수 등)
 
 public class GameManager : MonoBehaviour
 {
+    public static GameManager Instance; // 싱글톤 인스턴스
+
     public SkillPanel skillPanel_UI; // 인스펙터에서 SkillPanel 할당
     public List<SkillData> allGameSkills; // 게임 내 모든 스킬 데이터 (로드용)
     public int maxSkillsToDisplay = 5; // 표시할 최대 스킬 개수
@@ -17,6 +19,22 @@ public class GameManager : MonoBehaviour
 
     private List<Enemy> activeEnemies = new List<Enemy>(); // 현재 활성화된 적 목록
     public Enemy currentTargetEnemy; // 현재 선택된 적 (공격 대상)
+
+    [Header("전투 상태")]
+    public SkillData currentSelectedSkillForAttack; // 현재 선택된 스킬 (공격 시 사용)
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject); // 씬 전환 시에도 유지
+        }
+        else
+        {
+            Destroy(gameObject); // 이미 인스턴스가 존재하면 중복 생성 방지
+        }
+    }
 
     void Start()
     {
@@ -110,6 +128,8 @@ public class GameManager : MonoBehaviour
             }
         }
         activeEnemies.Clear();
+        currentTargetEnemy = null; // 현재 타겟도 초기화
+        currentSelectedSkillForAttack = null; // 선택된 스킬도 초기화
     }
 
     void SpawnEnemies()
@@ -175,6 +195,131 @@ public class GameManager : MonoBehaviour
             // 예: Invoke("StartNewStage", 2f); // 2초 후 다음 스테이지 시작
         }
     }
+
+    // SkillPanel에서 호출하여 플레이어가 사용할 스킬을 설정
+    public void SetSelectedSkillForAttack(SkillData skill)
+    {
+        currentSelectedSkillForAttack = skill;
+        Debug.Log($"공격 스킬 준비: {skill?.skillName ?? "없음"}");
+
+        // 스킬 선택 시 스킬 정보 패널도 업데이트 (SkillPanel에 이미 관련 로직이 있다면 중복 호출 주의)
+        // skillPanel_UI?.UpdateSkillInfoPanelWithDice(skill);
+        // 또는 SkillPanel의 SetCurrentSkillForInfoPanel를 호출하여 일관성 유지
+        skillPanel_UI?.SetCurrentSkillForInfoPanel(skill);
+
+        // 만약 스킬 선택 후 바로 타겟을 지정하는 방식이라면 여기서 추가 로직
+    }
+    // Enemy의 OnMouseDown에서 호출되어 타겟을 설정하고, 조건이 맞으면 공격 실행
+    public void EnemyClicked(Enemy clickedEnemy)
+    {
+        currentTargetEnemy = clickedEnemy; // 항상 클릭된 적을 현재 타겟으로 설정
+        Debug.Log($"타겟 지정: {clickedEnemy.gameObject.name}");
+
+        // (선택사항) 타겟 시각적 피드백 (예: 모든 적의 하이라이트 제거 후, 현재 타겟만 하이라이트)
+        // foreach(var enemy in activeEnemies) { enemy.SetHighlight(false); }
+        // clickedEnemy.SetHighlight(true);
+
+
+        if (currentSelectedSkillForAttack != null)
+        {
+            // 주사위가 굴려졌고, 숫자 주사위가 선택되었는지 확인
+            if (DiceManager.Instance != null && DiceManager.Instance.GetSelectedNumberDice() != null)
+            {
+                Debug.Log($"{clickedEnemy.gameObject.name}에게 {currentSelectedSkillForAttack.skillName} 스킬 사용 시도.");
+                AttemptAttackOnEnemy(clickedEnemy);
+            }
+            else
+            {
+                Debug.LogWarning("스킬을 사용하려면 먼저 주사위를 굴리고 숫자 주사위를 선택해야 합니다.");
+                // 여기에 사용자에게 알림 UI 표시 로직 추가 가능
+            }
+        }
+        else
+        {
+            Debug.Log("선택된 공격 스킬이 없습니다. 먼저 스킬을 선택해주세요.");
+            // 여기에 사용자에게 알림 UI 표시 로직 추가 가능
+        }
+    }
+
+    private bool TryCalculateFinalDamage(SkillData skill, out int finalDamage, out string calculationDetailsForUI)
+    {
+        finalDamage = 0;
+        calculationDetailsForUI = "";
+        if (skill == null) return false;
+
+        int baseDamage = skill.baseDamage;
+        finalDamage = baseDamage;
+        calculationDetailsForUI = baseDamage.ToString();
+
+        if (DiceManager.Instance != null)
+        {
+            string operation = DiceManager.Instance.GetSignOperation();
+            int numberValue;
+
+            if (DiceManager.Instance.TryGetSelectedNumberValue(out numberValue))
+            {
+                string colorTag = operation == "+" ? "green" : (operation == "-" ? "red" : "blue");
+                calculationDetailsForUI = $"{baseDamage} <color={colorTag}>{operation} {numberValue}</color>";
+
+                switch (operation)
+                {
+                    case "+": finalDamage = baseDamage + numberValue; break;
+                    case "-": finalDamage = baseDamage - numberValue; break;
+                        // 곱하기, 나누기 등
+                }
+            }
+            else
+            {
+                Debug.LogWarning("선택된 숫자 주사위 값이 없습니다. 기본 데미지로 계산합니다.");
+                // calculationDetailsForUI는 이미 baseDamage로 설정됨
+            }
+        }
+        else
+        {
+            Debug.LogWarning("DiceManager 인스턴스를 찾을 수 없습니다. 기본 데미지로 계산합니다.");
+        }
+        finalDamage = Mathf.Max(0, finalDamage); // 데미지가 음수가 되지 않도록
+        return true;
+    }
+
+    private void AttemptAttackOnEnemy(Enemy targetEnemy)
+    {
+        if (currentSelectedSkillForAttack == null || targetEnemy == null)
+        {
+            Debug.LogError("스킬 또는 타겟이 지정되지 않았습니다.");
+            return;
+        }
+
+        int calculatedDamage;
+        string calcDetails; // UI 표시용 계산 과정 (SkillPanel에서 이미 유사하게 처리 중이므로 여기선 로그용으로만 사용하거나 UI와 연동)
+
+        if (TryCalculateFinalDamage(currentSelectedSkillForAttack, out calculatedDamage, out calcDetails))
+        {
+            Debug.Log($"{targetEnemy.name}에게 {currentSelectedSkillForAttack.skillName} 사용! 최종 데미지: {calculatedDamage} (계산: {calcDetails.Replace("<color=green>", "").Replace("<color=red>", "").Replace("</color>", "")})"); // 로그에는 색상 코드 제거
+            targetEnemy.TakeDamage(calculatedDamage);
+
+            // 공격 후 처리
+            Debug.Log($"{currentSelectedSkillForAttack.skillName} 사용 완료.");
+            currentSelectedSkillForAttack = null; // 사용한 스킬 선택 해제
+
+            // 사용한 주사위 비활성화 또는 선택 해제 (DiceManager에 관련 기능 추가 필요 시)
+            // DiceManager.Instance.GetSelectedNumberDice()?.LockDice(); // 예시: 주사위 잠금
+            DiceManager.Instance.DeselectAll(); // 숫자 주사위 선택 해제
+
+            // 스킬 정보 패널에서 선택된 스킬 정보 초기화 (또는 다음 행동 안내)
+            skillPanel_UI?.SetCurrentSkillForInfoPanel(null); // 정보 패널 비우기 또는 기본 상태로
+                                                              // 또는 skillPanel_UI.RefreshSkillInfoPanelWithCurrentDiceState(); 호출하여 주사위 값만 남기기
+
+            // 턴 종료 로직 또는 다음 행동 대기 상태로 전환
+            // 예: EndPlayerTurn();
+        }
+        else
+        {
+            Debug.LogError("데미지 계산에 실패했습니다.");
+        }
+    }
+    // GameManager.ExecuteAttackOnTarget(int damage) 함수는 이제 AttemptAttackOnEnemy 내부 로직으로 통합되었으므로,
+    // 직접적인 public ExecuteAttackOnTarget는 필요 없을 수 있습니다. 만약 다른 곳에서 순수 데미지만큼 공격하는 기능이 필요하다면 유지합니다.
 
     // 플레이어가 적을 선택하는 로직 (Enemy.cs의 OnMouseDown 등에서 호출 가능)
     public void SelectTargetEnemy(Enemy enemy)
