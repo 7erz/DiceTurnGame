@@ -14,6 +14,7 @@ public class SkillPanel : MonoBehaviour
     public TextMeshProUGUI skillInfoPanelDetailsText;
 
     private List<SkillUI> instantiatedSkillButtons = new List<SkillUI>();
+    private SkillData currentDisplayedSkillForInfo;   //현재 정보 패널에 표시된 스킬
 
     public void PopulateSkillButtons(List<SkillData> skillsToDisplay)
     {
@@ -27,7 +28,7 @@ public class SkillPanel : MonoBehaviour
         {
             Debug.LogWarning("표시할 스킬이 없습니다.");
             // 스킬 정보 패널 초기화
-            UpdateSkillInfoPanel(null);
+            UpdateSkillInfoPanelWithDice(null);
             return;
         }
 
@@ -49,9 +50,9 @@ public class SkillPanel : MonoBehaviour
 
             if (skillUIComponent != null)
             {
-                // skillUIComponent.Setup(skill, this); // SkillUI가 SkillPanel을 직접 참조하는 방식
-                // SkillUI가 InfoPanel의 Text들을 직접 참조하도록 수정했으므로, 해당 참조를 넘겨줍니다.
-                skillUIComponent.Setup(skill, this, skillInfoPanelTitleText, skillInfoPanelDetailsText);
+                // skillUIComponent.Setup(skill, this, skillInfoPanelTitleText, skillInfoPanelDetailsText); // 이전 방식
+                // SkillUI는 버튼 이름만 설정하고, 정보 패널 업데이트는 SkillPanel이 전담하도록 변경
+                skillUIComponent.SetupButtonOnly(skill, this); // 새 Setup 함수 호출
                 instantiatedSkillButtons.Add(skillUIComponent);
             }
             else
@@ -61,43 +62,99 @@ public class SkillPanel : MonoBehaviour
             }
         }
 
-        // 기본적으로 첫 번째 스킬 정보를 표시하거나, 아무것도 선택되지 않은 상태로 둘 수 있습니다.
         if (skillsToDisplay.Count > 0)
         {
-            UpdateSkillInfoPanel(skillsToDisplay[0]); // 예시: 첫 번째 스킬 정보로 초기화
+            // Populate 후 첫 번째 스킬을 정보 패널에 표시 (주사위 값은 아직 미반영 상태로 표시하거나, 초기 주사위 값으로 표시)
+            currentDisplayedSkillForInfo = skillsToDisplay[0];
+            UpdateSkillInfoPanelWithDice(currentDisplayedSkillForInfo);
         }
         else
         {
-            UpdateSkillInfoPanel(null); // 스킬이 없으면 정보 패널 비우기
+            UpdateSkillInfoPanelWithDice(null);
         }
     }
 
-    // Skill_InfoPanel의 내용을 업데이트하는 함수
-    public void UpdateSkillInfoPanel(SkillData skill)
+    // 스킬 버튼 클릭 시 호출되어 현재 표시할 스킬을 설정하고 정보 패널을 업데이트
+    public void SetCurrentSkillForInfoPanel(SkillData skill)
     {
+        currentDisplayedSkillForInfo = skill;
+        UpdateSkillInfoPanelWithDice(skill);
+    }
+
+
+    // Skill_InfoPanel의 내용을 업데이트하는 함수
+    public void UpdateSkillInfoPanelWithDice(SkillData skill)
+    {
+        currentDisplayedSkillForInfo = skill;
+
         if (skillInfoPanelTitleText == null || skillInfoPanelDetailsText == null)
         {
             // 참조가 없으면 업데이트 불가
             return;
         }
 
-        if (skill != null)
+        if (skill == null)
         {
-            skillInfoPanelTitleText.text = skill.skillName;
-            skillInfoPanelDetailsText.text = $"데미지: {skill.baseDamage}\n{skill.description}";
+            skillInfoPanelTitleText.text = "스킬 정보";
+            skillInfoPanelDetailsText.text = "스킬을 선택해주세요.";
+            return;
         }
-        else
+
+        skillInfoPanelTitleText.text = skill.skillName;
+
+        int baseDamage = skill.baseDamage;
+        string description = skill.description;
+        string finalDamageText = $"데미지: {baseDamage}";
+        string calculationProcess = "";
+
+        if (DiceManager.Instance != null)
         {
-            skillInfoPanelTitleText.text = "스킬 정보"; // 기본 텍스트
-            skillInfoPanelDetailsText.text = "스킬을 선택해주세요."; // 기본 텍스트
+            string operation = DiceManager.Instance.GetSignOperation();
+            int numberValue;
+
+            if (DiceManager.Instance.TryGetSelectedNumberValue(out numberValue))
+            {
+                int calculatedDamage = baseDamage;
+                string operationDisplay = $"{numberValue}";
+                string colorTag = "blue"; // 기본 색상 (또는 다른 색)
+
+                switch (operation)
+                {
+                    case "+":
+                        calculatedDamage += numberValue;
+                        operationDisplay = $"+ {numberValue}";
+                        colorTag = "green"; // 덧셈은 초록색
+                        break;
+                    case "-":
+                        calculatedDamage -= numberValue;
+                        operationDisplay = $"- {numberValue}";
+                        colorTag = "red"; // 뺄셈은 빨간색
+                        break;
+                    case "*":
+                        calculatedDamage *= numberValue;
+                        operationDisplay = $"× {numberValue}";
+                        colorTag = "yellow"; // 곱셈은 노란색
+                        break;
+                    case "/":
+                        calculatedDamage *= numberValue;
+                        operationDisplay = $"÷ {numberValue}";
+                        colorTag = "purple"; // 나눗셈은 보라색
+                        break;
+                }
+                finalDamageText = $"데미지: {calculatedDamage}";
+                calculationProcess = $" ({baseDamage} <color={colorTag}>{operationDisplay}</color>)";
+            }
+        }
+
+        skillInfoPanelDetailsText.text = $"{finalDamageText}{calculationProcess}\n{description}";
+    }
+
+    public void RefreshSkillInfoPanelWithCurrentDiceState()
+    {
+        if (currentDisplayedSkillForInfo != null)
+        {
+            UpdateSkillInfoPanelWithDice(currentDisplayedSkillForInfo);
         }
     }
 
-    // (선택 사항) 게임 시작 시 플레이어 스킬 로드 예시 (GameManager에서 호출하도록 변경 권장)
-    // void Start()
-    // {
-    //     // 이 로직은 GameManager로 옮기는 것이 좋습니다.
-    //     // List<SkillData> testSkills = new List<SkillData>(Resources.LoadAll<SkillData>("Data")); // "Data" 폴더에 SkillData 에셋들이 있다고 가정
-    //     // PopulateSkillButtons(testSkills);
-    // }
 }

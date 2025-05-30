@@ -23,6 +23,36 @@ public class GameManager : MonoBehaviour
         {
             skillPanel_UI.PopulateSkillButtons(new List<SkillData>()); // 스킬이 없을 경우 빈 리스트 전달
         }
+
+        if (DiceManager.Instance != null && skillPanel_UI != null)
+        {
+            DiceManager.Instance.OnDiceSelected.AddListener(HandleDiceSelectionChanged);
+        }
+    }
+
+    // DiceManager.OnDiceSelected 이벤트가 발생했을 때 호출될 함수
+    void HandleDiceSelectionChanged(BodyDice selectedDice) // BodyDice 파라미터는 이벤트 시그니처에 따름
+    {
+        if (skillPanel_UI != null)
+        {
+            skillPanel_UI.RefreshSkillInfoPanelWithCurrentDiceState();
+        }
+    }
+
+    // RollButton의 OnClick 이벤트에 연결될 함수 (예시)
+    public void OnRollDiceButtonClicked()
+    {
+        if (DiceManager.Instance != null)
+        {
+            DiceManager.Instance.RollAllDices();
+            // 주사위를 굴린 후 잠시 기다렸다가 (애니메이션 등) 정보 패널 업데이트
+            // 또는 RollAllDices 내부의 코루틴 마지막에 이벤트 발생시켜 처리
+            if (skillPanel_UI != null)
+            {
+                // 바로 업데이트하거나, 주사위 롤 애니메이션 완료 후 업데이트
+                skillPanel_UI.RefreshSkillInfoPanelWithCurrentDiceState();
+            }
+        }
     }
 
     void LoadAllSkillData()
