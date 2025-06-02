@@ -15,3 +15,6 @@ MonoBehaviour:
   skillName: "\uB354\uBE14\uD0ED"
   baseDamage: 8
   description: "\uB450\uBC88 \uACF5\uACA9\uD569\uB2C8\uB2E4."
+  isBasicAttack: 1
+  gaugeChargeAmount: 2
+  gaugePointCost: 0

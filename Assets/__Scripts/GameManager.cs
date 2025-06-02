@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq; // Linq 사용을 위해 추가 (Take 함수 등)
+using TMPro; // TextMeshProUGUI 사용을 위해 추가
+using UnityEngine.UI; // UI 관련 클래스 사용을 위해 추가
 
 public class GameManager : MonoBehaviour
 {
@@ -22,6 +24,18 @@ public class GameManager : MonoBehaviour
 
     [Header("전투 상태")]
     public SkillData currentSelectedSkillForAttack; // 현재 선택된 스킬 (공격 시 사용)
+
+    [Header("액션 게이지 UI 관련")]
+    public Image[] gaugeBars;
+    public TextMeshProUGUI gaugeNumberText;
+
+    [Header("액션 게이지 로직")]
+    private int currentGaugeFillCount;      //현재 게이지 채움 횟수 (0~9)
+    private int currentGaugePoints; // 현재 게이지 포인트
+    public int maxGaugePoints = 3; // 최대 게이지 포인트 (0~3)
+    public int gaugeBarsPerPoint = 10; // 게이지 포인트당 채워야 하는 게이지 바 수
+
+
 
     void Awake()
     {
@@ -58,6 +72,10 @@ public class GameManager : MonoBehaviour
 
         // 스테이지 시작 시 적 생성
         StartNewStage();
+
+        //게이지 로직
+        InitializeGauge(); // 게이지 시스템 초기화
+        UpdateGaugeUI();   // UI 초기 업데이트
     }
 
     void OnEnable()
@@ -195,6 +213,86 @@ public class GameManager : MonoBehaviour
             // 예: Invoke("StartNewStage", 2f); // 2초 후 다음 스테이지 시작
         }
     }
+
+    void InitializeGauge()
+    {
+        currentGaugeFillCount = 0;
+        currentGaugePoints = 0;
+        // UpdateGaugeUI(); // Start에서 호출하므로 중복 호출 방지
+    }
+
+
+    public void AddGauge(int amount)
+    {
+        if (currentGaugePoints >= maxGaugePoints && currentGaugeFillCount >= gaugeBarsPerPoint - 1) // 이미 최대치(3포인트 9칸)면 더 이상 안 참
+        {
+            Debug.Log("액션 게이지가 이미 최대로 가득 찼습니다.");
+            return;
+        }
+        currentGaugeFillCount += amount;
+        Debug.Log($"게이지 {amount} 증가. 현재 칸: {currentGaugeFillCount}");
+
+        while (currentGaugeFillCount >= gaugeBarsPerPoint)
+        {
+            if (currentGaugePoints < maxGaugePoints)
+            {
+                currentGaugeFillCount -= gaugeBarsPerPoint;
+                currentGaugePoints++;
+                Debug.Log($"게이지 포인트 1 증가! 현재 포인트: {currentGaugePoints}, 남은 칸: {currentGaugeFillCount}");
+            }
+            else // 최대 포인트(3)에 도달했고, 10칸이 다 참
+            {
+                currentGaugeFillCount = gaugeBarsPerPoint - 1; // 최대 포인트에서는 9칸까지만 표시 (10칸째는 0으로 돌아가면서 포인트가 올라가야 하나, 이미 최대 포인트)
+                Debug.Log("최대 게이지 포인트에 도달했습니다. 더 이상 포인트는 증가하지 않습니다.");
+                break; // 더 이상 포인트를 올릴 수 없으므로 루프 탈출
+            }
+        }
+        UpdateGaugeUI();
+    }
+
+    public bool CanUseGaugePoints(int pointsToUse)
+    {
+        return currentGaugePoints >= pointsToUse;
+    }
+
+    public bool TryUseGaugePoints(int pointsToUse)
+    {
+        if (CanUseGaugePoints(pointsToUse))
+        {
+            currentGaugePoints -= pointsToUse;
+            Debug.Log($"게이지 포인트 {pointsToUse} 사용. 남은 포인트: {currentGaugePoints}");
+            UpdateGaugeUI();
+            return true;
+        }
+        Debug.LogWarning("게이지 포인트가 부족합니다!");
+        return false;
+    }
+
+    void UpdateGaugeUI()
+    {
+        // 게이지 바 업데이트
+        if (gaugeBars != null)
+        {
+            for (int i = 0; i < gaugeBars.Length; i++)
+            {
+                if (gaugeBars[i] != null)
+                {
+                    // i번째 바는 (i < currentGaugeFillCount) 일 때 활성화(또는 채워진 이미지로 변경)
+                    gaugeBars[i].enabled = (i < currentGaugeFillCount);
+                    // 또는 gaugeBars[i].sprite = (i < currentGaugeFillCount) ? filledSprite : emptySprite;
+                    // 또는 gaugeBars[i].color = (i < currentGaugeFillCount) ? filledColor : emptyColor;
+                }
+            }
+        }
+
+        // 게이지 숫자 업데이트
+        if (gaugeNumberText != null)
+        {
+            gaugeNumberText.text = currentGaugePoints.ToString();
+        }
+    }
+
+
 
     // SkillPanel에서 호출하여 플레이어가 사용할 스킬을 설정
     public void SetSelectedSkillForAttack(SkillData skill)

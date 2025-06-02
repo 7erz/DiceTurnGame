@@ -272,7 +272,7 @@ GameObject:
   - component: {fileID: 92663341}
   - component: {fileID: 92663340}
   m_Layer: 5
-  m_Name: GaugeBar
+  m_Name: GaugeBar (0)
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2793,6 +2793,21 @@ MonoBehaviour:
   minEnemiesPerStage: 1
   maxEnemiesPerStage: 5
   currentTargetEnemy: {fileID: 0}
+  currentSelectedSkillForAttack: {fileID: 0}
+  gaugeBars:
+  - {fileID: 92663340}
+  - {fileID: 696921929}
+  - {fileID: 339322627}
+  - {fileID: 839110149}
+  - {fileID: 2111450925}
+  - {fileID: 1483516999}
+  - {fileID: 163969843}
+  - {fileID: 1183916269}
+  - {fileID: 1129106410}
+  - {fileID: 143343204}
+  gaugeNumberText: {fileID: 22665298}
+  maxGaugePoints: 10
+  gaugeBarsPerPoint: 3
 --- !u!114 &1247677661 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4028676528952030001, guid: 0f8dbeaa0903d694b90b0731c27a853b, type: 3}
