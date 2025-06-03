@@ -4,6 +4,15 @@ using UnityEngine;
 using System.Linq; // Linq 사용을 위해 추가 (Take 함수 등)
 using TMPro; // TextMeshProUGUI 사용을 위해 추가
 using UnityEngine.UI; // UI 관련 클래스 사용을 위해 추가
+using System.Collections; // 코루틴 사용을 위해 추가
+
+public enum GamePhase
+{
+    PlayerTurn_Roll,
+    PlayerTurn_Action,
+    EnemyTurn,
+    GameOver
+}
 
 public class GameManager : MonoBehaviour
 {
@@ -42,6 +51,10 @@ public class GameManager : MonoBehaviour
     public int maxGaugePoints = 3; // 최대 게이지 포인트 (0~3)
     public int gaugeBarsPerPoint = 10; // 게이지 포인트당 채워야 하는 게이지 바 수
 
+    [Header("턴 상태")]
+    public GamePhase currentPhase;
+    public Button rollDiceButton;
+    public Button endTurnButton;
 
 
     void Awake()
@@ -77,12 +90,13 @@ public class GameManager : MonoBehaviour
             DiceManager.Instance.OnDiceSelected.AddListener(HandleDiceSelectionChanged);
         }
 
+
         // 스테이지 시작 시 적 생성
-        StartNewStage();
+        StartNewGame();
 
         //게이지 로직
         InitializeGauge(); // 게이지 시스템 초기화
-        UpdateGaugeUI();   // UI 초기 업데이트
+        //UpdateGaugeUI();   // UI 초기 업데이트
     }
 
     void OnEnable()
@@ -123,17 +137,43 @@ public class GameManager : MonoBehaviour
     // RollButton의 OnClick 이벤트에 연결될 함수 (예시)
     public void OnRollDiceButtonClicked()
     {
+        if (currentPhase != GamePhase.PlayerTurn_Roll)
+        {
+            Debug.LogWarning("지금은 주사위를 굴릴 수 있는 단계가 아닙니다.");
+            return;
+        }
+
         if (DiceManager.Instance != null)
         {
+            DiceManager.Instance.ResetAllDicesForNewTurn();
+            Debug.Log("주사위 상태 리셋됨 (OnRollDiceButtonClicked).");
+
             DiceManager.Instance.RollAllDices();
-            // 주사위를 굴린 후 잠시 기다렸다가 (애니메이션 등) 정보 패널 업데이트
-            // 또는 RollAllDices 내부의 코루틴 마지막에 이벤트 발생시켜 처리
-            if (skillPanel_UI != null)
-            {
-                // 바로 업데이트하거나, 주사위 롤 애니메이션 완료 후 업데이트
-                skillPanel_UI.RefreshSkillInfoPanelWithCurrentDiceState();
-            }
+            Debug.Log("주사위 굴림!");
+
+            // 주사위 굴린 후 스킬 정보 패널 업데이트 (주사위 값 반영 위해)
+            skillPanel_UI?.RefreshSkillInfoPanelWithCurrentDiceState();
         }
+
+        if (rollDiceButton != null)
+        {
+            rollDiceButton.interactable = false; // 굴리기 버튼 비활성화
+            Debug.Log("굴리기 버튼 비활성화됨.");
+        }
+        ChangePhase(GamePhase.PlayerTurn_Action); // 행동 단계로 전환
+    }
+
+    // EndTurn 버튼의 OnClick 이벤트에 이 함수를 연결합니다.
+    public void OnEndTurnButtonClicked()
+    {
+        if (currentPhase != GamePhase.PlayerTurn_Roll && currentPhase != GamePhase.PlayerTurn_Action)
+        {
+            Debug.LogWarning("지금은 턴을 종료할 수 없습니다.");
+            return;
+        }
+
+        Debug.Log("플레이어 턴 종료.");
+        ChangePhase(GamePhase.EnemyTurn);
     }
 
     public void StartNewStage()
@@ -142,6 +182,97 @@ public class GameManager : MonoBehaviour
         SpawnEnemies();
         InitializeGauge(); // 새 스테이지 시작 시 게이지 초기화
         UpdateGaugeUI();   // 게이지 UI도 업데이트
+    }
+
+    public void StartNewGame()
+    {
+        StartNewStage(); // 새 스테이지 시작 (적 생성 등)
+        ChangePhase(GamePhase.PlayerTurn_Roll); // 초기 페이즈 설정
+    }
+
+    public void ChangePhase(GamePhase newPhase)
+    {
+        currentPhase = newPhase;
+        Debug.Log($"페이즈 변경: {currentPhase}");
+
+        switch (currentPhase)
+        {
+            case GamePhase.PlayerTurn_Roll:
+                StartPlayerRollPhase();
+                break;
+            case GamePhase.PlayerTurn_Action:
+                StartPlayerActionPhase();
+                break;
+            case GamePhase.EnemyTurn:
+                StartEnemyTurn();
+                break;
+            case GamePhase.GameOver:
+                // 게임 오버 처리
+                break;
+        }
+    }
+
+    void StartPlayerRollPhase()
+    {
+        Debug.Log("플레이어 턴: 주사위 굴리기 단계");
+
+        if (rollDiceButton != null)
+        {
+            rollDiceButton.interactable = true; // 굴리기 버튼 활성화
+        }
+        if (endTurnButton != null)
+        {
+            endTurnButton.interactable = true; // 턴 종료 버튼도 이 시점에 활성화 (또는 액션 후)
+        }
+        // 이전 턴에 사용한 주사위/스킬 선택 상태 초기화
+        DiceManager.Instance?.DeselectAll();
+        currentSelectedSkillForAttack = null;
+        skillPanel_UI?.SetCurrentSkillForInfoPanel(null); // 스킬 정보창도 초기화
+    }
+
+    void StartPlayerActionPhase()
+    {
+        Debug.Log("플레이어 턴: 행동 단계");
+
+    }
+
+    void StartEnemyTurn()
+    {
+        Debug.Log("적 턴 시작");
+        // 적 턴에는 플레이어의 모든 행동 UI 비활성화 (선택적)
+        if (rollDiceButton != null) rollDiceButton.interactable = false;
+        if (endTurnButton != null) endTurnButton.interactable = false;
+        // skillPanel_UI 등도 비활성화 고려
+
+        // 여기에 적의 행동 로직 (AI)을 구현합니다.
+        // 예시: 모든 적이 순서대로 또는 랜덤하게 행동
+        StartCoroutine(EnemyActionsCoroutine());
+    }
+
+    IEnumerator EnemyActionsCoroutine()
+    {
+        if (activeEnemies.Count > 0)
+        {
+            foreach (Enemy enemy in activeEnemies.ToList()) // ToList()로 복사본 순회 (적이 죽어서 리스트 변경될 수 있으므로)
+            {
+                if (enemy != null && enemy.currentHp > 0) // 살아있는 적만 행동
+                {
+                    Debug.Log($"{enemy.gameObject.name} 행동 시작");
+                    // 적의 공격 또는 다른 행동 로직 (예: enemy.PerformAction();)
+                    // 지금은 간단히 로그만 찍고 딜레이
+                    yield return new WaitForSeconds(1.0f); // 각 적의 행동 시간 (애니메이션 등)
+                    Debug.Log($"{enemy.gameObject.name} 행동 완료");
+                }
+            }
+        }
+        else
+        {
+            Debug.Log("행동할 적이 없습니다.");
+            yield return new WaitForSeconds(0.5f); // 약간의 딜레이
+        }
+
+        Debug.Log("모든 적 행동 완료. 적 턴 종료.");
+        ChangePhase(GamePhase.PlayerTurn_Roll); // 다시 플레이어 턴 (주사위 굴리기 단계)으로
     }
 
     void ClearOldEnemies()
@@ -461,6 +592,8 @@ public class GameManager : MonoBehaviour
                 {
                     case "+": finalDamage = baseDamage + numberValue; break;
                     case "-": finalDamage = baseDamage - numberValue; break;
+                    case "*": finalDamage = baseDamage * numberValue; break;
+                    case "/": finalDamage = baseDamage / numberValue; break;
                         // 곱하기, 나누기 등
                 }
             }
@@ -482,7 +615,6 @@ public class GameManager : MonoBehaviour
     {
         if (currentSelectedSkillForAttack == null || targetEnemy == null)
         {
-            Debug.LogError("스킬 또는 타겟이 지정되지 않았습니다.");
             return;
         }
 
@@ -491,38 +623,38 @@ public class GameManager : MonoBehaviour
             if (!TryUseGaugePoints(currentSelectedSkillForAttack.gaugePointCost))
             {
                 Debug.LogWarning($"{currentSelectedSkillForAttack.skillName} 사용 실패: 게이지 포인트 부족!");
-                // 사용자에게 알림 (예: UI 메시지)
                 return; // 공격 중단
             }
         }
 
         int calculatedDamage;
         string calcDetails; // UI 표시용 계산 과정 (SkillPanel에서 이미 유사하게 처리 중이므로 여기선 로그용으로만 사용하거나 UI와 연동)
+        BodyDice usedDice = DiceManager.Instance.GetSelectedNumberDice(); // 사용될 주사위 미리 참조
 
         if (TryCalculateFinalDamage(currentSelectedSkillForAttack, out calculatedDamage, out calcDetails))
         {
-            Debug.Log($"{targetEnemy.name}에게 {currentSelectedSkillForAttack.skillName} 사용! 최종 데미지: {calculatedDamage} (계산: {calcDetails.Replace("<color=green>", "").Replace("<color=red>", "").Replace("</color>", "")})"); // 로그에는 색상 코드 제거
+            Debug.Log($"{targetEnemy.name}에게 {currentSelectedSkillForAttack.skillName} 사용! 최종 데미지: {calculatedDamage}");
             targetEnemy.TakeDamage(calculatedDamage);
+
+            // 사용한 숫자 주사위 비활성화
+            if (usedDice != null)
+            {
+                usedDice.SetUsed(true);
+                Debug.Log($"{usedDice.gameObject.name} 주사위 사용됨 처리.");
+            }
+
             if (currentSelectedSkillForAttack.isBasicAttack)
             {
                 AddGauge(currentSelectedSkillForAttack.gaugeChargeAmount);
-                Debug.Log("AddGauge 호출됨. 증가량: " + currentSelectedSkillForAttack.gaugeChargeAmount + ", 현재 채워진 칸: " + currentGaugeFillCount + ", 현재 포인트: " + currentGaugePoints); // 로그 추가
             }
 
-            // 공격 후 처리
             Debug.Log($"{currentSelectedSkillForAttack.skillName} 사용 완료.");
-            currentSelectedSkillForAttack = null; // 사용한 스킬 선택 해제
+            currentSelectedSkillForAttack = null;
+            // DiceManager.Instance?.DeselectAll(); // 선택 해제는 ResetAllDicesForNewTurn에서 이미 처리 또는 SetUsed(true)에서 outline 해제됨.
+            // 공격 후에는 현재 선택된 주사위가 없어져야 하므로 호출하는 것이 좋을 수 있음.
+            DiceManager.Instance?.DeselectAll(); // 공격 후 현재 선택된 주사위 해제
 
-            // 사용한 주사위 비활성화 또는 선택 해제 (DiceManager에 관련 기능 추가 필요 시)
-            // DiceManager.Instance.GetSelectedNumberDice()?.LockDice(); // 예시: 주사위 잠금
-            DiceManager.Instance.DeselectAll(); // 숫자 주사위 선택 해제
-
-            // 스킬 정보 패널에서 선택된 스킬 정보 초기화 (또는 다음 행동 안내)
-            skillPanel_UI?.SetCurrentSkillForInfoPanel(null); // 정보 패널 비우기 또는 기본 상태로
-                                                              // 또는 skillPanel_UI.RefreshSkillInfoPanelWithCurrentDiceState(); 호출하여 주사위 값만 남기기
-
-            // 턴 종료 로직 또는 다음 행동 대기 상태로 전환
-            // 예: EndPlayerTurn();
+            skillPanel_UI?.SetCurrentSkillForInfoPanel(null);
         }
         else
         {

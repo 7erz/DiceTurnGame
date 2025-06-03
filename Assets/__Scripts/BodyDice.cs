@@ -24,11 +24,10 @@ public class BodyDice : MonoBehaviour
 
 
     public UnityEvent<string> OnDiceRolled; // 결과 심볼(string) 전달
-
-    
     public string LastRollResult { get; private set; }
-
     private bool isRolling = false;
+
+    public bool IsUsedThisTurn { get; private set; } = false; // 턴에서 사용 여부
 
     void Awake()
     {
@@ -54,8 +53,24 @@ public class BodyDice : MonoBehaviour
 
     void Start()
     {
-        outline.enabled = false;
-        DiceManager.Instance.RegisterDice(this);
+        if (outline != null) outline.enabled = false;
+        if (DiceManager.Instance != null)
+        {
+            DiceManager.Instance.RegisterDice(this);
+
+            // 자신이 부호 주사위인지 DiceManager를 통해 확인
+            if (DiceManager.Instance.signDice == this)
+            {
+                SetUsed(false); // 부호 주사위는 항상 사용 가능(선택 가능) 상태로 시작
+                                // 부호 주사위는 선택 버튼이 없을 수도 있으므로, selectButton null 체크가 중요
+                if (selectButton != null) selectButton.interactable = true; // 부호 주사위도 버튼이 있다면 활성화
+            }
+            else
+            {
+                SetOutline(true); // 숫자 주사위는 외곽선 표시
+                SetUsed(true); // 숫자 주사위는 게임 시작 시 사용된 상태(비활성화)로 시작
+            }
+        }
     }
 
     // 주사위 굴리기
@@ -147,17 +162,60 @@ public class BodyDice : MonoBehaviour
         }
     }
 
+    public void SetUsed(bool used)
+    {
+        IsUsedThisTurn = used;
+        if (selectButton != null)
+        {
+            selectButton.interactable = !used; // 사용되었으면 버튼 비활성화
+        }
+        // 추가적인 시각적 피드백 (예: 알파값 변경)
+        if (diceImage != null)
+        {
+            Color color = diceImage.color;
+            color.a = used ? 0.5f : 1.0f; // 사용되었으면 반투명하게
+            diceImage.color = color;
+        }
+        if (used) // 사용됨으로 설정되면 외곽선도 해제
+        {
+            SetOutline(false);
+        }
+    }
+
     public void SetOutline(bool state)
     {
-        outline.enabled = state;
+        if (outline != null && !IsUsedThisTurn) // 사용된 주사위는 외곽선 표시 안 함
+        {
+            outline.enabled = state;
+        }
+        else if (outline != null && IsUsedThisTurn && state) // 사용된 주사위에 외곽선 켜려고 하면 강제 해제
+        {
+            outline.enabled = false;
+        }
     }
 
     public void OnSelected()
     {
+        if (IsUsedThisTurn)
+        {
+            Debug.Log("이 주사위는 이번 턴에 이미 사용되었습니다.");
+            return;
+        }
+        if (isRolling)
+        {
+            Debug.Log("주사위가 굴러가는 중에는 선택할 수 없습니다.");
+            return;
+        }
+
         int num;
-        if(int.TryParse(LastRollResult, out num))
+        if (int.TryParse(LastRollResult, out num)) // 숫자 주사위만 선택 가능하도록
         {
             DiceManager.Instance.SelectDice(this);
+        }
+        else
+        {
+            // 부호 주사위 등 숫자가 아닌 주사위는 이 함수로 선택되지 않음
+            // (DiceManager.SelectDice에서 부호 주사위 선택 방지 로직도 있음)
         }
     }
 }
