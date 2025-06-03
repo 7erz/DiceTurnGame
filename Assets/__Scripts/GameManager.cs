@@ -276,7 +276,10 @@ public class GameManager : MonoBehaviour
         if (CanUseGaugePoints(pointsToUse))
         {
             currentGaugePoints -= pointsToUse;
-            Debug.Log($"게이지 포인트 {pointsToUse} 사용. 남은 포인트: {currentGaugePoints}");
+            // currentGaugeFillCount는 변경하지 않음. 다음 AddGauge 시 현재 포인트 레벨에서 이어서 참.
+            // 또는, 포인트가 줄어들면 currentGaugeFillCount가 10칸(gaugeBarsPerPoint-1)으로 꽉 차는 것으로 간주할 수도 있음.
+            // 현재 요구사항("1포인트 3게이지칸이 채워지는걸로 보이는게 바뀌어야겠지?")는 fillCount가 유지되는 것을 의미.
+            Debug.Log($"게이지 포인트 {pointsToUse} 사용. 남은 포인트: {currentGaugePoints}, 현재 칸: {currentGaugeFillCount}");
             UpdateGaugeUI();
             return true;
         }
@@ -286,48 +289,104 @@ public class GameManager : MonoBehaviour
 
     void UpdateGaugeUI()
     {
-        if (gaugeBars == null) return;
-
-        Color currentFillColor;
-        switch (currentGaugePoints)
+        if (gaugeBars == null || gaugeBars.Length == 0)
         {
-            case 0:
-                currentFillColor = gaugePoint0Color;
-                break;
-            case 1:
-                currentFillColor = gaugePoint1Color;
-                break;
-            case 2:
-                currentFillColor = gaugePoint2Color;
-                break;
-            case 3:
-                currentFillColor = gaugePoint3Color;
-                break;
-            default: // 혹시 모를 예외 상황
-                currentFillColor = gaugeEmptyColor;
-                break;
+            Debug.LogWarning("GaugeBars 배열이 할당되지 않았거나 비어있습니다.");
+            return;
+        }
+        if (gaugeBars.Length != gaugeBarsPerPoint)
+        {
+            // 이 경고는 UI 구성에 따라 달라질 수 있으므로, 일단 주석 처리하거나 필요에 맞게 조정합니다.
+            // Debug.LogWarning($"GaugeBars 배열의 크기({gaugeBars.Length})가 gaugeBarsPerPoint({gaugeBarsPerPoint})와 일치하지 않습니다.");
         }
 
-        for (int i = 0; i < gaugeBars.Length; i++)
+
+        for (int i = 0; i < gaugeBars.Length; i++) // UI 게이지 바는 0~9 인덱스
         {
-            if (gaugeBars[i] != null)
+            if (gaugeBars[i] == null) continue;
+
+            if (i < currentGaugeFillCount) // 현재 포인트 레벨에서 채워지고 있는 칸들
             {
-                if (i < currentGaugeFillCount)
+                switch (currentGaugePoints)
                 {
-                    gaugeBars[i].color = currentFillColor; // 채워진 칸은 현재 포인트에 맞는 색상으로
-                    gaugeBars[i].enabled = true; // 이미지 자체는 항상 보이도록 할 수도 있음 (색상으로 구분)
+                    case 0: gaugeBars[i].color = gaugePoint0Color; break;
+                    case 1: gaugeBars[i].color = gaugePoint1Color; break;
+                    case 2: gaugeBars[i].color = gaugePoint2Color; break;
+                    case 3: gaugeBars[i].color = gaugePoint3Color; break;
+                    default: gaugeBars[i].color = gaugeEmptyColor; break; // 혹시 모를 상황
                 }
-                else
+            }
+            else // 현재 포인트 레벨에서 아직 채워지지 않은 칸들
+            {
+                // 이 칸들은 이전 포인트 레벨의 색상으로 채워져 있어야 함 (만약 이전 포인트가 존재한다면)
+                // 또는 완전히 비어있어야 함 (currentGaugePoints == 0 일 때)
+                if (currentGaugePoints == 0) // 0포인트이고, 현재 fill count 뒤의 칸들은 빈 칸
                 {
-                    gaugeBars[i].color = gaugeEmptyColor; // 비워진 칸은 기본 색상으로
-                    // gaugeBars[i].enabled = false; // 또는 비활성화하여 숨기기
+                    gaugeBars[i].color = gaugeEmptyColor;
+                }
+                else if (currentGaugePoints == 1) // 1포인트이고, 현재 fill count 뒤의 칸들은 0포인트 색(초록)으로 채워져 있어야 함
+                {
+                    gaugeBars[i].color = gaugePoint0Color;
+                }
+                else if (currentGaugePoints == 2) // 2포인트이고, 현재 fill count 뒤의 칸들은 1포인트 색(노랑)으로 채워져 있어야 함
+                {
+                    gaugeBars[i].color = gaugePoint1Color;
+                }
+                else if (currentGaugePoints == 3) // 3포인트이고, 현재 fill count 뒤의 칸들은 2포인트 색(빨강)으로 채워져 있어야 함
+                {
+                    gaugeBars[i].color = gaugePoint2Color;
+                }
+                else // 그 외의 경우는 빈 칸 (이론상 currentGaugePoints는 0~3 사이)
+                {
+                    gaugeBars[i].color = gaugeEmptyColor;
                 }
             }
         }
 
+        // 포인트 소모 시 예시 반영:
+        // 만약 2포인트 3칸이었다면: currentGaugePoints = 2, currentGaugeFillCount = 3
+        // 바 0,1,2는 gaugePoint2Color (빨강)
+        // 바 3~9는 gaugePoint1Color (노랑) - 위 로직을 이렇게 수정해야 함.
+
+        // 최종 수정된 로직 (사용자 예시: "2포인트 3칸이면 빨간색 3개, 노란색 7개" 반영)
+        for (int i = 0; i < gaugeBars.Length; i++)
+        {
+            if (gaugeBars[i] == null) continue;
+
+            if (i < currentGaugeFillCount) // 현재 포인트 레벨에서 채워지고 있는 부분
+            {
+                gaugeBars[i].color = GetColorForPointLevel(currentGaugePoints);
+            }
+            else // 현재 포인트 레벨에서 비어있지만, 이전 포인트 레벨로 채워져야 하는 부분
+            {
+                if (currentGaugePoints > 0) // 현재 포인트가 0보다 커야 이전 레벨이 존재
+                {
+                    gaugeBars[i].color = GetColorForPointLevel(currentGaugePoints - 1);
+                }
+                else // 현재 포인트가 0이고, currentGaugeFillCount 뒤의 칸들은 빈 칸
+                {
+                    gaugeBars[i].color = gaugeEmptyColor;
+                }
+            }
+        }
+
+
         if (gaugeNumberText != null)
         {
             gaugeNumberText.text = currentGaugePoints.ToString();
+        }
+    }
+
+    // 특정 포인트 레벨에 맞는 색상을 반환하는 헬퍼 함수
+    private Color GetColorForPointLevel(int pointLevel)
+    {
+        switch (pointLevel)
+        {
+            case 0: return gaugePoint0Color;
+            case 1: return gaugePoint1Color;
+            case 2: return gaugePoint2Color;
+            case 3: return gaugePoint3Color; // 3포인트 또는 그 이상 (최대 3이지만)
+            default: return gaugeEmptyColor; // 음수 포인트 또는 예외 상황
         }
     }
 
@@ -427,6 +486,16 @@ public class GameManager : MonoBehaviour
             return;
         }
 
+        if (currentSelectedSkillForAttack.gaugePointCost > 0) // 게이지 포인트를 소모하는 스킬이라면
+        {
+            if (!TryUseGaugePoints(currentSelectedSkillForAttack.gaugePointCost))
+            {
+                Debug.LogWarning($"{currentSelectedSkillForAttack.skillName} 사용 실패: 게이지 포인트 부족!");
+                // 사용자에게 알림 (예: UI 메시지)
+                return; // 공격 중단
+            }
+        }
+
         int calculatedDamage;
         string calcDetails; // UI 표시용 계산 과정 (SkillPanel에서 이미 유사하게 처리 중이므로 여기선 로그용으로만 사용하거나 UI와 연동)
 
@@ -434,6 +503,11 @@ public class GameManager : MonoBehaviour
         {
             Debug.Log($"{targetEnemy.name}에게 {currentSelectedSkillForAttack.skillName} 사용! 최종 데미지: {calculatedDamage} (계산: {calcDetails.Replace("<color=green>", "").Replace("<color=red>", "").Replace("</color>", "")})"); // 로그에는 색상 코드 제거
             targetEnemy.TakeDamage(calculatedDamage);
+            if (currentSelectedSkillForAttack.isBasicAttack)
+            {
+                AddGauge(currentSelectedSkillForAttack.gaugeChargeAmount);
+                Debug.Log("AddGauge 호출됨. 증가량: " + currentSelectedSkillForAttack.gaugeChargeAmount + ", 현재 채워진 칸: " + currentGaugeFillCount + ", 현재 포인트: " + currentGaugePoints); // 로그 추가
+            }
 
             // 공격 후 처리
             Debug.Log($"{currentSelectedSkillForAttack.skillName} 사용 완료.");
@@ -454,6 +528,9 @@ public class GameManager : MonoBehaviour
         {
             Debug.LogError("데미지 계산에 실패했습니다.");
         }
+
+
+
     }
     // GameManager.ExecuteAttackOnTarget(int damage) 함수는 이제 AttemptAttackOnEnemy 내부 로직으로 통합되었으므로,
     // 직접적인 public ExecuteAttackOnTarget는 필요 없을 수 있습니다. 만약 다른 곳에서 순수 데미지만큼 공격하는 기능이 필요하다면 유지합니다.

@@ -2806,8 +2806,13 @@ MonoBehaviour:
   - {fileID: 1129106410}
   - {fileID: 143343204}
   gaugeNumberText: {fileID: 22665298}
-  maxGaugePoints: 10
-  gaugeBarsPerPoint: 3
+  gaugeEmptyColor: {r: 1, g: 1, b: 1, a: 1}
+  gaugePoint0Color: {r: 0, g: 1, b: 0, a: 1}
+  gaugePoint1Color: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  gaugePoint2Color: {r: 1, g: 0, b: 0, a: 1}
+  gaugePoint3Color: {r: 0.8, g: 0, b: 0, a: 1}
+  maxGaugePoints: 3
+  gaugeBarsPerPoint: 10
 --- !u!114 &1247677661 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 4028676528952030001, guid: 0f8dbeaa0903d694b90b0731c27a853b, type: 3}
