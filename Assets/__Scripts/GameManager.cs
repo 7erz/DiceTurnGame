@@ -29,6 +29,13 @@ public class GameManager : MonoBehaviour
     public Image[] gaugeBars;
     public TextMeshProUGUI gaugeNumberText;
 
+    [Header("게이지 바 컬러")] // 색상 설정용 변수 추가
+    public Color gaugeEmptyColor = Color.white; // 비워진 칸 기본 색상
+    public Color gaugePoint0Color = Color.green; // 0 포인트일 때 채워진 칸 색상
+    public Color gaugePoint1Color = Color.yellow; // 1 포인트일 때 채워진 칸 색상
+    public Color gaugePoint2Color = Color.red;    // 2 포인트일 때 채워진 칸 색상
+    public Color gaugePoint3Color = new Color(0.8f, 0, 0); // 3 포인트일 때 채워진 칸 색상 (예: 어두운 빨강)
+
     [Header("액션 게이지 로직")]
     private int currentGaugeFillCount;      //현재 게이지 채움 횟수 (0~9)
     private int currentGaugePoints; // 현재 게이지 포인트
@@ -133,7 +140,8 @@ public class GameManager : MonoBehaviour
     {
         ClearOldEnemies(); // 이전 스테이지 적들 정리 (필요시)
         SpawnEnemies();
-        // 기타 스테이지 시작 로직 (UI 업데이트 등)
+        InitializeGauge(); // 새 스테이지 시작 시 게이지 초기화
+        UpdateGaugeUI();   // 게이지 UI도 업데이트
     }
 
     void ClearOldEnemies()
@@ -224,11 +232,12 @@ public class GameManager : MonoBehaviour
 
     public void AddGauge(int amount)
     {
-        if (currentGaugePoints >= maxGaugePoints && currentGaugeFillCount >= gaugeBarsPerPoint - 1) // 이미 최대치(3포인트 9칸)면 더 이상 안 참
+        if (currentGaugePoints >= maxGaugePoints && currentGaugeFillCount >= gaugeBarsPerPoint - 1)
         {
             Debug.Log("액션 게이지가 이미 최대로 가득 찼습니다.");
             return;
         }
+
         currentGaugeFillCount += amount;
         Debug.Log($"게이지 {amount} 증가. 현재 칸: {currentGaugeFillCount}");
 
@@ -240,13 +249,20 @@ public class GameManager : MonoBehaviour
                 currentGaugePoints++;
                 Debug.Log($"게이지 포인트 1 증가! 현재 포인트: {currentGaugePoints}, 남은 칸: {currentGaugeFillCount}");
             }
-            else // 최대 포인트(3)에 도달했고, 10칸이 다 참
+            else
             {
-                currentGaugeFillCount = gaugeBarsPerPoint - 1; // 최대 포인트에서는 9칸까지만 표시 (10칸째는 0으로 돌아가면서 포인트가 올라가야 하나, 이미 최대 포인트)
+                currentGaugeFillCount = gaugeBarsPerPoint - 1;
+                // 최대 포인트에서는 마지막 칸(9번째 인덱스)까지만 채워진 것으로 유지. 10칸째는 시각적으로 0으로 돌아가는게 아니라 9칸에서 멈춤.
+                // 만약 10칸이 다 차면 0으로 돌아가면서 숫자가 1증가하는 표현을 원했다면,
+                // currentGaugeFillCount = 0; 으로 하고, 최대 포인트일때는 currentGaugeFillCount가 gaugeBarsPerPoint-1을 넘지 않도록 조정해야함.
+                // 현재 로직은 최대 포인트일때 10칸째가 차면 그냥 9칸에서 멈추는 방식.
                 Debug.Log("최대 게이지 포인트에 도달했습니다. 더 이상 포인트는 증가하지 않습니다.");
-                break; // 더 이상 포인트를 올릴 수 없으므로 루프 탈출
+                break;
             }
         }
+        // currentGaugeFillCount가 음수가 되지 않도록 보정 (필요한 경우)
+        currentGaugeFillCount = Mathf.Max(0, currentGaugeFillCount);
+
         UpdateGaugeUI();
     }
 
@@ -270,22 +286,45 @@ public class GameManager : MonoBehaviour
 
     void UpdateGaugeUI()
     {
-        // 게이지 바 업데이트
-        if (gaugeBars != null)
+        if (gaugeBars == null) return;
+
+        Color currentFillColor;
+        switch (currentGaugePoints)
         {
-            for (int i = 0; i < gaugeBars.Length; i++)
+            case 0:
+                currentFillColor = gaugePoint0Color;
+                break;
+            case 1:
+                currentFillColor = gaugePoint1Color;
+                break;
+            case 2:
+                currentFillColor = gaugePoint2Color;
+                break;
+            case 3:
+                currentFillColor = gaugePoint3Color;
+                break;
+            default: // 혹시 모를 예외 상황
+                currentFillColor = gaugeEmptyColor;
+                break;
+        }
+
+        for (int i = 0; i < gaugeBars.Length; i++)
+        {
+            if (gaugeBars[i] != null)
             {
-                if (gaugeBars[i] != null)
+                if (i < currentGaugeFillCount)
                 {
-                    // i번째 바는 (i < currentGaugeFillCount) 일 때 활성화(또는 채워진 이미지로 변경)
-                    gaugeBars[i].enabled = (i < currentGaugeFillCount);
-                    // 또는 gaugeBars[i].sprite = (i < currentGaugeFillCount) ? filledSprite : emptySprite;
-                    // 또는 gaugeBars[i].color = (i < currentGaugeFillCount) ? filledColor : emptyColor;
+                    gaugeBars[i].color = currentFillColor; // 채워진 칸은 현재 포인트에 맞는 색상으로
+                    gaugeBars[i].enabled = true; // 이미지 자체는 항상 보이도록 할 수도 있음 (색상으로 구분)
+                }
+                else
+                {
+                    gaugeBars[i].color = gaugeEmptyColor; // 비워진 칸은 기본 색상으로
+                    // gaugeBars[i].enabled = false; // 또는 비활성화하여 숨기기
                 }
             }
         }
 
-        // 게이지 숫자 업데이트
         if (gaugeNumberText != null)
         {
             gaugeNumberText.text = currentGaugePoints.ToString();
