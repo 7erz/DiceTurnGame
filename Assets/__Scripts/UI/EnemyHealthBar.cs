@@ -46,7 +46,7 @@ public class EnemyHealthBar : MonoBehaviour
             enemyData.OnDiedInstance += HandleDeath;      // Enemy의 인스턴스 사망 이벤트 구독
 
             // 초기 상태 업데이트 (Enemy의 Start 이후 호출되도록 순서 주의 필요, 또는 Enemy에서 직접 초기값 전달)
-            UpdateHealthBar(enemyData.currentHp, enemyData.maxHp);
+            UpdateHealthBar(enemyData.CurrentHp, enemyData.enemyData.maxHp);
         }
         lastHitTime = -10f;
         UpdateVisibility();
@@ -102,7 +102,8 @@ public class EnemyHealthBar : MonoBehaviour
             return;
         }
 
-        bool shouldBeVisible = enemyData.currentHp < enemyData.maxHp && enemyData.currentHp > 0 && Time.time < lastHitTime + visibleTime;
+        //bool shouldBeVisible = enemyData.currentHp < enemyData.maxHp && enemyData.currentHp > 0 && Time.time < lastHitTime + visibleTime;
+        bool shouldBeVisible = enemyData.CurrentHp < enemyData.enemyData.maxHp && enemyData.CurrentHp > 0 && Time.time < lastHitTime + visibleTime;
 
         if (healthSlider.gameObject.activeSelf != shouldBeVisible)
         {

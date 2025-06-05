@@ -102,8 +102,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 51f4d9a0282148e45a58e85f41b55c01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHp: 50
-  currentHp: 0
+  enemyData: {fileID: 11400000, guid: 21f9e5c60662369409291fcde5db1e3c, type: 2}
   healthText: {fileID: 0}
 --- !u!70 &4058136719469912809
 CapsuleCollider2D:

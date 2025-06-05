@@ -126,7 +126,7 @@ public class GameManager : MonoBehaviour
     {
         // Resources 폴더 하위의 "Data" 폴더에서 모든 SkillData 에셋을 불러옵니다.
         // 중요: SkillData 에셋들이 "Assets/Resources/Data" 폴더에 있어야 합니다.
-        allGameSkills = new List<SkillData>(Resources.LoadAll<SkillData>("Data"));
+        allGameSkills = new List<SkillData>(Resources.LoadAll<SkillData>("SkillData"));
 
         if (allGameSkills.Count == 0)
         {
@@ -267,24 +267,28 @@ public class GameManager : MonoBehaviour
 
     IEnumerator EnemyActionsCoroutine()
     {
+        Debug.Log("적들의 행동 시작...");
         if (activeEnemies.Count > 0)
         {
-            foreach (Enemy enemy in activeEnemies.ToList()) // ToList()로 복사본 순회 (적이 죽어서 리스트 변경될 수 있으므로)
+            // 중요: activeEnemies 리스트를 직접 순회하면서 요소가 제거(적이 죽음)되면 오류 발생 가능
+            // 따라서 ToList()로 복사본을 만들어 순회하거나, 역순으로 순회하는 등의 처리가 필요.
+            // 여기서는 ToList()를 사용하여 현재 살아있는 적 목록의 복사본으로 행동 순서를 정함.
+            List<Enemy> enemiesToAct = activeEnemies.Where(e => e != null && e.CurrentHp > 0).ToList();
+
+            foreach (Enemy enemy in enemiesToAct)
             {
-                if (enemy != null && enemy.currentHp > 0) // 살아있는 적만 행동
+                if (enemy != null && enemy.CurrentHp > 0) // 행동 시점에도 살아있는지 다시 확인
                 {
-                    Debug.Log($"{enemy.gameObject.name} 행동 시작");
-                    // 적의 공격 또는 다른 행동 로직 (예: enemy.PerformAction();)
-                    // 지금은 간단히 로그만 찍고 딜레이
-                    yield return new WaitForSeconds(1.0f); // 각 적의 행동 시간 (애니메이션 등)
-                    Debug.Log($"{enemy.gameObject.name} 행동 완료");
+                    Debug.Log($"--- {enemy.gameObject.name} 행동 ---");
+                    enemy.PerformAction(); // 각 적의 행동 실행
+                    yield return new WaitForSeconds(1.5f); // 각 적의 행동 사이 딜레이 (애니메이션 시간 등 고려)
                 }
             }
         }
         else
         {
             Debug.Log("행동할 적이 없습니다.");
-            yield return new WaitForSeconds(0.5f); // 약간의 딜레이
+            yield return new WaitForSeconds(0.5f);
         }
 
         Debug.Log("모든 적 행동 완료. 적 턴 종료.");
@@ -728,7 +732,7 @@ public class GameManager : MonoBehaviour
     // 실제 공격 실행 함수 (Skill 사용 시 호출)
     public void ExecuteAttackOnTarget(int damage)
     {
-        if (currentTargetEnemy != null && currentTargetEnemy.currentHp > 0)
+        if (currentTargetEnemy != null && currentTargetEnemy.CurrentHp > 0)
         {
             Debug.Log($"{currentTargetEnemy.name}에게 {damage} 데미지 공격!");
             currentTargetEnemy.TakeDamage(damage);
