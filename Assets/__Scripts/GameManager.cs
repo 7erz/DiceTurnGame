@@ -56,6 +56,13 @@ public class GameManager : MonoBehaviour
     public Button rollDiceButton;
     public Button endTurnButton;
 
+    [Header("Turn Notification UI")] // 알림 UI 참조 추가
+    public GameObject turnNotificationPanel; // 인스펙터에서 "TurnNotificationPanel" 할당
+    public TextMeshProUGUI turnNotificationText; // 인스펙터에서 "NotificationText" 할당
+    public float notificationDisplayTime = 2.0f; // 알림 표시 시간 (초)
+
+    private Coroutine notificationCoroutine; // 실행 중인 알림 코루틴 참조
+
 
     void Awake()
     {
@@ -88,6 +95,12 @@ public class GameManager : MonoBehaviour
         if (DiceManager.Instance != null && skillPanel_UI != null)
         {
             DiceManager.Instance.OnDiceSelected.AddListener(HandleDiceSelectionChanged);
+        }
+
+        // 알림 패널 초기 비활성화
+        if (turnNotificationPanel != null)
+        {
+            turnNotificationPanel.SetActive(false);
         }
 
 
@@ -198,15 +211,18 @@ public class GameManager : MonoBehaviour
         switch (currentPhase)
         {
             case GamePhase.PlayerTurn_Roll:
+                ShowTurnNotification("플레이어 턴");
                 StartPlayerRollPhase();
                 break;
             case GamePhase.PlayerTurn_Action:
                 StartPlayerActionPhase();
                 break;
             case GamePhase.EnemyTurn:
+                ShowTurnNotification("적 턴"); // 알림 표시
                 StartEnemyTurn();
                 break;
             case GamePhase.GameOver:
+                ShowTurnNotification("게임 오버");
                 // 게임 오버 처리
                 break;
         }
@@ -351,6 +367,33 @@ public class GameManager : MonoBehaviour
             // 다음 스테이지로 이동하거나, 게임 클리어 처리
             // 예: Invoke("StartNewStage", 2f); // 2초 후 다음 스테이지 시작
         }
+    }
+
+    void ShowTurnNotification(string message)
+    {
+        if (turnNotificationPanel == null || turnNotificationText == null)
+        {
+            Debug.LogWarning("턴 알림 UI가 설정되지 않았습니다.");
+            return;
+        }
+
+        // 이미 실행 중인 알림 코루틴이 있다면 중지 (새 알림으로 대체)
+        if (notificationCoroutine != null)
+        {
+            StopCoroutine(notificationCoroutine);
+        }
+        notificationCoroutine = StartCoroutine(ShowNotificationCoroutine(message));
+    }
+
+    IEnumerator ShowNotificationCoroutine(string message)
+    {
+        turnNotificationText.text = message;
+        turnNotificationPanel.SetActive(true);
+
+        yield return new WaitForSeconds(notificationDisplayTime);
+
+        turnNotificationPanel.SetActive(false);
+        notificationCoroutine = null; // 코루틴 완료 후 참조 초기화
     }
 
     void InitializeGauge()
