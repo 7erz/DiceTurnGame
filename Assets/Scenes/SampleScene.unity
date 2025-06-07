@@ -2759,7 +2759,10 @@ MonoBehaviour:
   skillPanel_UI: {fileID: 873819385}
   allGameSkills: []
   maxSkillsToDisplay: 5
-  enemyPrefab: {fileID: 8458545023138153993, guid: e02906b572d0505499e31ee19949feed, type: 3}
+  enemyPrefabs:
+  - {fileID: 8458545023138153993, guid: e02906b572d0505499e31ee19949feed, type: 3}
+  - {fileID: 8458545023138153993, guid: c08b1d7c649a2c14fb3662fa7f1b6c6f, type: 3}
+  - {fileID: 8458545023138153993, guid: f84a66bec8da75840a662217fa3792cc, type: 3}
   enemySpawnPoints:
   - {fileID: 1507093824}
   - {fileID: 1770648537}

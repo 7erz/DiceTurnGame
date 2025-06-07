@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
     public int maxSkillsToDisplay = 5; // 표시할 최대 스킬 개수
 
     [Header("적 설정")]
-    public GameObject enemyPrefab; // 적 프리팹 (인스펙터에서 할당)
+    public GameObject[] enemyPrefabs; // 적 프리팹 (인스펙터에서 할당)
     public Transform[] enemySpawnPoints; // 적 생성 위치 (인스펙터에서 할당, 빈 오브젝트로 설정)
     public int minEnemiesPerStage = 1; // 최소 적 생성 수
     public int maxEnemiesPerStage = 5; // 최대 적 생성 수
@@ -311,7 +311,7 @@ public class GameManager : MonoBehaviour
 
     void SpawnEnemies()
     {
-        if (enemyPrefab == null)
+        if (enemyPrefabs == null || enemyPrefabs.Length == 0)
         {
             Debug.LogError("Enemy Prefab이 할당되지 않았습니다!");
             return;
@@ -332,12 +332,20 @@ public class GameManager : MonoBehaviour
         {
             // 스폰 위치 랜덤하게 선택 (또는 순차적으로)
             Transform spawnPoint = enemySpawnPoints[i];
-            GameObject enemyGO = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
+            GameObject randomEnemyPrefab = enemyPrefabs[Random.Range(0, enemyPrefabs.Length)];
+            GameObject enemyGO = Instantiate(randomEnemyPrefab, spawnPoint.position, Quaternion.identity);
             Enemy newEnemy = enemyGO.GetComponent<Enemy>();
             if (newEnemy != null)
             {
                 activeEnemies.Add(newEnemy);
-                enemyGO.name = $"Enemy_{i + 1}"; // 구분하기 쉽도록 이름 변경
+                if (newEnemy.enemyData != null)
+                {
+                    enemyGO.name = $"{newEnemy.enemyData.enemyName}_{i + 1}";
+                }
+                else
+                {
+                    enemyGO.name = $"Enemy_{i + 1}";
+                }
             }
         }
         // 첫 번째 적을 기본 타겟으로 설정 (선택 사항)
